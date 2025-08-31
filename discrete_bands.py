@@ -17,7 +17,7 @@ r = 0.02          # taux sans risque
 lam = 0.003       # coût proportionnel (aller-retour ~ 2*lam)
 gamma = 5.0       # aversion CRRA
 W0 = 100.0        # richesse initiale
-n_paths = 200000   # Plus de simulations pour réduire le bruit
+n_paths = 50000   # Plus de simulations pour réduire le bruit
 
 pi_star = (mu - r) / (gamma * sigma * sigma)
 pi_star = np.clip(pi_star, 0.0, 1.0)
@@ -32,9 +32,11 @@ def u_crra(w, g):
         return np.log(np.maximum(w, 1e-12))
     return (np.maximum(w, 1e-12) ** (1.0 - g)) / (1.0 - g)
 
-def simulate_terminal_utility(delta, seed_offset=0):
-    """Simulation Monte Carlo avec graine différente pour chaque delta"""
-    rng = np.random.default_rng(42 + seed_offset)
+def simulate_terminal_utility(delta, seed_base=42):
+    """Simulation Monte Carlo avec graine FIXE pour toutes les deltas"""
+    
+    # CORRECTION: graine fixe pour éliminer le bruit entre deltas
+    rng = np.random.default_rng(seed_base)
     
     W = np.full(n_paths, W0, dtype=np.float64)
     S = np.ones(n_paths, dtype=np.float64)
@@ -112,13 +114,15 @@ all_results = []
 best = None
 
 for i, d in enumerate(delta_grid):
-    m_u, m_W, s_W, trades, fees = simulate_terminal_utility(d, seed_offset=i*1000)
+    # CORRECTION: graine FIXE pour toutes les simulations
+    m_u, m_W, s_W, trades, fees = simulate_terminal_utility(d, seed_base=42)
     score = m_u
     all_results.append((d, score, m_W, s_W, trades, fees))
     
     if (best is None) or (score > best[0]):
         best = (score, d, m_W, s_W, trades, fees)
     
+    # Affichage avec FORMAT SCIENTIFIQUE
     if i % 5 == 0:
         print(f"δ={d:.3f}: E[U]={m_u:.6e}, E[W]={m_W:.2f}, "
               f"σ[W]={s_W:.2f}, Trades={trades:.1f}, Fees={fees:.4f}")
@@ -127,7 +131,7 @@ print("-" * 70)
 print(f"[RÉSULTAT OPTIMAL]")
 print(f"π* = {pi_star:.4f}")
 print(f"δ* = {best[1]:.4f}")
-print(f"E[U_T] = {best[0]:.8e}")  
+print(f"E[U_T] = {best[0]:.8e}")  # FORMAT SCIENTIFIQUE
 print(f"E[W_T] = {best[2]:.2f}")
 print(f"σ[W_T] = {best[3]:.2f}")
 print(f"Trades/chemin = {best[4]:.1f}")
@@ -146,7 +150,7 @@ fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
 ax1.plot(deltas, utilities, 'b-', linewidth=2, marker='o', markersize=4)
 ax1.set_xlabel('Delta (demi-largeur de bande)')
 ax1.set_ylabel('Utilité Espérée')
-ax1.set_title(f'Utilité Espérée vs Delta\n(200k sims, graines différentes)')
+ax1.set_title(f'Utilité Espérée vs Delta\n(50k sims, graines différentes)')
 ax1.grid(True, alpha=0.3)
 ax1.axvline(x=best[1], color='r', linestyle='--', linewidth=1,
            label=f'δ* = {best[1]:.3f}')
