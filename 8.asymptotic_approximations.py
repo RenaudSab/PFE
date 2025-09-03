@@ -34,7 +34,6 @@ def asymptotic_value(lam):
     Ici on approxime V0 par l’utilité frictionless de W=1.
     """
     V0 = 1.0**(1-gamma)/(1-gamma)
-    # correction (proportionnelle à -delta^2)
     _, _, delta = asymptotic_bandwidth(lam)
     V1 = -0.5 * gamma * sigma**2 * delta**2
     return V0 + V1

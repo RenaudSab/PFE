@@ -8,7 +8,7 @@ continuous_band_merton.py
 import numpy as np
 
 T = 1.0
-N = 10000        # pas fin ~ continu
+N = 10000        
 dt = T / N
 mu = 0.07; sigma = 0.2; r = 0.02
 lam = 0.003

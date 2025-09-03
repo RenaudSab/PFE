@@ -47,9 +47,7 @@ RISK_AVERSION = 1.0        # pondération de la cible Σ^{-1} μ (si <=0 -> fall
 # Monte Carlo pour nuage risk-return
 N_SIMS = 100
 
-# =========================
-# 1) OUTILS NUMÉRIQUES
-# =========================
+
 def project_simplex_box(y, lb=0.0, ub=0.7, s=1.0, tol=1e-12, max_iter=100):
     """
     Projection de y sur {x : sum x = s, lb <= x_i <= ub}
@@ -71,14 +69,13 @@ def project_simplex_box(y, lb=0.0, ub=0.7, s=1.0, tol=1e-12, max_iter=100):
             lo = tau
         else:
             hi = tau
-    return x  # dernier x si non convergé
+    return x 
 
 def gbm_paths_rel(mu, sigma, rho, n_steps, dt, n_sims):
     """
     Tire des multiplicateurs relatifs R_{t+1}/R_t pour chaque actif (shape (n_sims, n_steps, d)).
     """
     d = len(mu)
-    # Cholesky sur corr
     L = np.linalg.cholesky(rho)
     Z = np.random.randn(n_sims, n_steps, d)
     Z_corr = Z @ L.T
@@ -113,9 +110,7 @@ def target_weights_from_cov(Sigma, mu, ridge=1e-6):
     w = project_simplex_box(y, lb=0.0 if NO_SHORT else -W_MAX, ub=W_MAX, s=1.0)
     return w
 
-# =========================
-# 2) SIMULATION D’UNE STRATÉGIE
-# =========================
+
 def simulate_one_path(R_rel, mu_ann, ewma_decay=EWMA_DECAY):
     """
     Simule une trajectoire (R_rel : (n_steps, d)) avec :
@@ -128,9 +123,8 @@ def simulate_one_path(R_rel, mu_ann, ewma_decay=EWMA_DECAY):
     W = 100.0
     wealth = np.empty(n_steps+1); wealth[0] = W
 
-    # initialisation cov EWMA (diagonale à partir de sigma_ann)
     Sigma = np.diag((sigma_ann/np.sqrt(steps_per_year))**2)
-    # cible initiale
+
     w = target_weights_from_cov(Sigma, mu_ann)
     weights = np.empty((n_steps+1, d)); weights[0] = w
 
@@ -149,7 +143,7 @@ def simulate_one_path(R_rel, mu_ann, ewma_decay=EWMA_DECAY):
         r_simple = r_rel - 1.0
         Sigma = ewma_update_cov(Sigma, r_simple, ewma_decay)
 
-        # Poids dérivés par la dérive des prix (sans trade)
+        # Poids dérivés par la dérive des prix 
         w_drift = (w * r_rel) / gross_mult
 
         # Nouvelle cible
@@ -161,7 +155,7 @@ def simulate_one_path(R_rel, mu_ann, ewma_decay=EWMA_DECAY):
             trade_abs = np.abs(w_tgt - w_drift)
             fee_frac = float(np.dot(lambda_vec, trade_abs))
             W *= (1.0 - fee_frac)              # on paie les frais
-            total_fees += fee_frac * wealth[t+1]  # comptabilisé en nominal (post trade)
+            total_fees += fee_frac * wealth[t+1]  
             n_rebals += 1
             w = w_tgt
         else:
@@ -178,10 +172,7 @@ def simulate_one_path(R_rel, mu_ann, ewma_decay=EWMA_DECAY):
         "port_returns": port_rets
     }
 
-# =========================
-# 3) LANCEMENT — 1 TRAJECTOIRE + MONTE CARLO
-# =========================
-# Convertir annuels -> pas
+# Convertir annuels
 mu_step = mu_ann
 sigma_step = sigma_ann
 
@@ -201,10 +192,6 @@ for s in range(N_SIMS):
     vol_a = np.std(r) * np.sqrt(steps_per_year)
     mc_ann_ret[s] = mu_a
     mc_ann_vol[s] = vol_a
-
-# =========================
-# 4) GRAPHIQUES
-# =========================
 
 # 4.1 Allocation temporelle (stacked area)
 plt.figure(figsize=(10,5))
