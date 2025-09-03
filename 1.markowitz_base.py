@@ -1,14 +1,3 @@
-"""
-markowitz_base.py - Modèle de Markowitz Simple et Efficace
-===========================================================
-
-Version simplifiée avec cvxopt pour résoudre les problèmes d'optimisation
-- Contraintes de non-négativité automatiques
-- Frontière efficiente robuste
-- Données de marché réalistes
-- Graphiques intégrés
-"""
-
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -20,16 +9,14 @@ warnings.filterwarnings('ignore')
 try:
     import cvxopt as opt
     from cvxopt import blas, solvers
-    solvers.options['show_progress'] = False  # Supprime les messages
+    solvers.options['show_progress'] = False 
     USE_CVXOPT = True
 except ImportError:
-    print("⚠️  cvxopt non disponible, utilisation de scipy")
+    print(" cvxopt non disponible, utilisation de scipy")
     from scipy.optimize import minimize
     USE_CVXOPT = False
 
-# =============================
 # DONNÉES DE MARCHÉ RÉALISTES
-# =============================
 
 def get_market_data() -> Tuple[np.ndarray, np.ndarray, List[str]]:
     """
@@ -71,9 +58,7 @@ def simulate_returns(mu: np.ndarray, Sigma: np.ndarray, n_obs: int = 252) -> np.
     
     return returns
 
-# =============================
 # GÉNÉRATION DE PORTEFEUILLES
-# =============================
 
 def rand_weights(n: int) -> np.ndarray:
     """Génère n poids aléatoires qui somment à 1"""
@@ -101,9 +86,7 @@ def generate_random_portfolios(returns: np.ndarray, n_portfolios: int = 1000) ->
     
     return means, stds
 
-# =============================
 # OPTIMISATION MARKOWITZ
-# =============================
 
 def optimal_portfolio_cvxopt(returns: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
@@ -111,7 +94,6 @@ def optimal_portfolio_cvxopt(returns: np.ndarray) -> Tuple[np.ndarray, np.ndarra
     """
     n = returns.shape[0]
     
-    # Paramètres statistiques
     mu = np.mean(returns, axis=1)
     Sigma = np.cov(returns)
     
@@ -121,8 +103,7 @@ def optimal_portfolio_cvxopt(returns: np.ndarray) -> Tuple[np.ndarray, np.ndarra
     mu_max = np.max(mu)
     target_returns = np.linspace(mu_min, mu_max * 0.95, N)
     
-    # Matrices pour cvxopt
-    P = opt.matrix(2.0 * Sigma)  # 2 * Sigma pour la forme quadratique
+    P = opt.matrix(2.0 * Sigma) 
     q = opt.matrix(0.0, (n, 1))
     
     # Contraintes d'inégalité: -w <= 0 (i.e., w >= 0)
@@ -140,14 +121,14 @@ def optimal_portfolio_cvxopt(returns: np.ndarray) -> Tuple[np.ndarray, np.ndarra
         b = opt.matrix([1.0, target_mu])
         
         try:
-            # Résolution du problème quadratique
+            
             sol = solvers.qp(P, q, G, h, A, b)
             
             if sol['status'] == 'optimal':
                 w = np.array(sol['x']).flatten()
                 portfolios.append(w)
                 
-                # Calcul rendement et risque
+                
                 port_return = mu.T @ w
                 port_risk = np.sqrt(w.T @ Sigma @ w)
                 
@@ -188,13 +169,13 @@ def optimal_portfolio_scipy(returns: np.ndarray) -> Tuple[np.ndarray, np.ndarray
             {'type': 'eq', 'fun': lambda w: mu.T @ w - target_mu}  # Rendement cible
         ]
         
-        # Bornes: pas de short selling
+        # Bornes car pas de short selling
         bounds = [(0, 1) for _ in range(n)]
         
-        # Point de départ
+      
         x0 = np.ones(n) / n
         
-        # Optimisation
+       
         result = minimize(objective, x0, method='SLSQP', 
                          bounds=bounds, constraints=constraints)
         
@@ -210,9 +191,7 @@ def optimal_portfolio_scipy(returns: np.ndarray) -> Tuple[np.ndarray, np.ndarray
     
     return np.array(portfolios), np.array(frontier_returns), np.array(frontier_risks)
 
-# =============================
 # PORTEFEUILLES REMARQUABLES
-# =============================
 
 def minimum_variance_portfolio(returns: np.ndarray) -> Tuple[np.ndarray, float, float]:
     """Calcule le portefeuille à variance minimale"""
@@ -222,7 +201,7 @@ def minimum_variance_portfolio(returns: np.ndarray) -> Tuple[np.ndarray, float, 
     ones = np.ones(len(mu))
     Sigma_inv = np.linalg.inv(Sigma)
     
-    # Formule analytique GMV
+    # Formule analytique
     w_gmv = Sigma_inv @ ones / (ones.T @ Sigma_inv @ ones)
     
     # Projection sur les contraintes de positivité
@@ -240,7 +219,7 @@ def maximum_sharpe_portfolio(returns: np.ndarray, risk_free_rate: float = 0.02) 
     mu = np.mean(returns, axis=1)
     
     # Rendements en excès
-    excess_returns = mu - risk_free_rate / 252  # Conversion journalière
+    excess_returns = mu - risk_free_rate / 252  # Conversion journalière en BD
     
     Sigma_inv = np.linalg.inv(Sigma)
     
@@ -284,9 +263,7 @@ def maximum_volatility_portfolio(returns: np.ndarray, target_vol: float = 0.12) 
     return w_target, mu_target, sigma_target
 
 
-# =============================
 # VISUALISATIONS
-# =============================
 
 def create_visualizations(returns: np.ndarray, asset_names: List[str]):
     """
@@ -322,10 +299,10 @@ def create_visualizations(returns: np.ndarray, asset_names: List[str]):
     random_means_annual = random_means * 252
     random_stds_annual = random_stds * np.sqrt(252)
     
-    # ========== FIGURE PRINCIPALE ==========
+    # FIGURE PRINCIPALE
     fig = plt.figure(figsize=(18, 12))
     
-    # ========== GRAPHIQUE 1: FRONTIÈRE EFFICIENTE ==========
+    # GRAPHIQUE 1: FRONTIÈRE EFFICIENTE
     ax1 = plt.subplot(2, 3, 1)
     
     ax1.scatter(random_stds_annual, random_means_annual, 
@@ -346,23 +323,23 @@ def create_visualizations(returns: np.ndarray, asset_names: List[str]):
     ax1.legend()
     ax1.grid(True, alpha=0.3)
     
-    # ========== GRAPHIQUE 2: ALLOCATION GMV ==========
+    # GRAPHIQUE 2: ALLOCATION GMV
     ax2 = plt.subplot(2, 3, 2)
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
     ax2.pie(w_gmv, labels=asset_names, colors=colors, autopct='%1.1f%%', startangle=90)
     ax2.set_title(f'Allocation - GMV\n(μ={mu_gmv_annual:.1%}, σ={sigma_gmv_annual:.1%})')
     
-    # ========== GRAPHIQUE 3: ALLOCATION TANGENT ==========
+    # GRAPHIQUE 3: ALLOCATION TANGENT
     ax3 = plt.subplot(2, 3, 3)
     ax3.pie(w_tangent, labels=asset_names, colors=colors, autopct='%1.1f%%', startangle=90)
     ax3.set_title(f'Allocation - Max Sharpe\n(μ={mu_tangent_annual:.1%}, σ={sigma_tangent_annual:.1%})')
     
-    # ========== GRAPHIQUE 4: ALLOCATION MAX VOL ==========
+    # GRAPHIQUE 4: ALLOCATION MAX VOL
     ax4 = plt.subplot(2, 3, 4)
     ax4.pie(w_vol, labels=asset_names, colors=colors, autopct='%1.1f%%', startangle=90)
     ax4.set_title(f'Allocation - Haute Volatilité\n(μ={mu_vol_annual:.1%}, σ={sigma_vol_annual:.1%})')
     
-    # ========== GRAPHIQUE 5: RATIOS RENDEMENT/RISQUE ==========
+    # GRAPHIQUE 5: RATIOS RENDEMENT/RISQUE
     ax5 = plt.subplot(2, 3, 5)
     if len(frontier_returns) > 0:
         risk_free_annual = 0.02
@@ -379,7 +356,7 @@ def create_visualizations(returns: np.ndarray, asset_names: List[str]):
         ax5.legend()
         ax5.grid(True, alpha=0.3)
     
-    # ========== GRAPHIQUE 6: STATISTIQUES ==========
+    # GRAPHIQUE 6: STATISTIQUES
     ax6 = plt.subplot(2, 3, 6)
     ax6.axis('off')
     
@@ -411,51 +388,47 @@ def create_visualizations(returns: np.ndarray, asset_names: List[str]):
     plt.show()
     
     # Résumé console
-    print("\n📋 RÉSUMÉ DES RÉSULTATS")
+    print("\nRÉSUMÉ DES RÉSULTATS")
     print("=" * 50)
-    print(f"📊 Portefeuilles aléatoires générés: {len(random_means)}")
-    print(f"🎯 Points sur la frontière efficiente: {len(frontier_returns)}")
+    print(f"Portefeuilles aléatoires générés: {len(random_means)}")
+    print(f"Points sur la frontière efficiente: {len(frontier_returns)}")
     
-    print(f"\n📉 GMV:")
+    print(f"\n GMV:")
     print(f"   - Rendement: {mu_gmv_annual:.2%}")
     print(f"   - Risque: {sigma_gmv_annual:.2%}")
     print(f"   - Allocation: {dict(zip(asset_names, (w_gmv*100).round(1)))}")
     
-    print(f"\n📈 Max Sharpe:")
+    print(f"\n Max Sharpe:")
     print(f"   - Rendement: {mu_tangent_annual:.2%}")
     print(f"   - Risque: {sigma_tangent_annual:.2%}")
     print(f"   - Sharpe: {sharpe_max*np.sqrt(252):.3f}")
     print(f"   - Allocation: {dict(zip(asset_names, (w_tangent*100).round(1)))}")
     
-    print(f"\n⚡ Haute Volatilité:")
+    print(f"\n Haute Volatilité:")
     print(f"   - Rendement: {mu_vol_annual:.2%}")
     print(f"   - Risque: {sigma_vol_annual:.2%}")
     print(f"   - Allocation: {dict(zip(asset_names, (w_vol*100).round(1)))}")
 
-# =============================
 # FONCTION PRINCIPALE
-# =============================
 
 def main():
     """Fonction principale d'exécution"""
-    print("🚀 DÉMARRAGE: Modèle de Markowitz Simple")
+    print(" DÉMARRAGE: Modèle de Markowitz Simple")
     print("=" * 50)
     
     mu_annual, Sigma_annual, asset_names = get_market_data()
     
-    print(f"📊 Actifs: {asset_names}")
-    print(f"📈 Rendements annuels: {(mu_annual*100).round(1)}%")
-    print(f"📉 Volatilités annuelles: {(np.sqrt(np.diag(Sigma_annual))*100).round(1)}%")
+    print(f" Actifs: {asset_names}")
+    print(f" Rendements annuels: {(mu_annual*100).round(1)}%")
+    print(f" Volatilités annuelles: {(np.sqrt(np.diag(Sigma_annual))*100).round(1)}%")
     
     returns_daily = simulate_returns(mu_annual, Sigma_annual, n_obs=252)
-    print(f"✅ Simulation: {returns_daily.shape[1]} observations journalières")
+    print(f" Simulation: {returns_daily.shape[1]} observations journalières")
     
     create_visualizations(returns_daily, asset_names)
     return returns_daily, asset_names
 
-# =============================
 # EXÉCUTION INDÉPENDANTE
-# =============================
 
 if __name__ == "__main__":
     print("Modele de Markowitz - Version Simplifiee")

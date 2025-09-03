@@ -3,9 +3,6 @@ continuous_band_merton.py
 - Approximation temps continu: cible de Merton π* et rebalancement par bande fixe δ.
 - On utilise un pas fin (Δt petit) pour approcher le continu.
 - Donne la CE (certitude équivalente) et la bande optimale δ par recherche grossière.
-
-Usage:
-  python continuous_band_merton.py
 """
 
 import numpy as np

@@ -1,28 +1,22 @@
-"""
-discrete_bands.py
-"""
-
 import numpy as np
 import matplotlib.pyplot as plt
 
-# ----------------------- params -----------------------
 T = 1.0           # horizon (années)
 N = 252           # pas de temps
 dt = T / N
 mu = 0.07         
 sigma = 0.2       # volatilité
 r = 0.02          # taux sans risque
-lam = 0.003       # coût proportionnel (aller-retour ~ 2*lam)
+lam = 0.003       # coût proportionnel
 gamma = 5.0       # aversion CRRA
 W0 = 100.0        # richesse initiale
-n_paths = 50000   #Monte Carlo
+n_paths = 50000   # nb de simulations
 
 pi_star = (mu - r) / (gamma * sigma * sigma)
 pi_star = np.clip(pi_star, 0.0, 1.0)
 
 # grille de bandes (demi-largeur δ)
 delta_grid = np.linspace(0.0, 0.25, 26)  
-# -----------------------------------------------------
 
 def u_crra(w, g):
     """Utilité CRRA avec protection contre w<=0 du au log"""
@@ -131,7 +125,6 @@ print(f"σ[W_T] = {best[3]:.2f}")
 print(f"Trades/chemin = {best[4]:.1f}")
 print(f"Frais/chemin = {best[5]:.4f}")
 
-# Graphiques
 deltas = [r[0] for r in all_results]
 utilities = [r[1] for r in all_results]
 wealths = [r[2] for r in all_results]
@@ -140,7 +133,7 @@ fees_list = [r[5] for r in all_results]
 
 fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
 
-# Plot 1: Utilité 
+
 ax1.plot(deltas, utilities, 'b-', linewidth=2, marker='o', markersize=4)
 ax1.set_xlabel('Delta (demi-largeur de bande)')
 ax1.set_ylabel('Utilité Espérée')
@@ -150,7 +143,7 @@ ax1.axvline(x=best[1], color='r', linestyle='--', linewidth=1,
            label=f'δ* = {best[1]:.3f}')
 ax1.legend()
 
-# Plot 2: Richesse
+
 ax2.plot(deltas, wealths, 'g-', linewidth=2, marker='s', markersize=4)
 ax2.set_xlabel('Delta (demi-largeur de bande)')
 ax2.set_ylabel('Richesse Espérée')
@@ -160,7 +153,7 @@ ax2.axvline(x=best[1], color='r', linestyle='--', linewidth=1,
            label=f'δ* = {best[1]:.3f}')
 ax2.legend()
 
-# Plot 3: Fréquence de trading
+
 ax3.plot(deltas, trades_list, 'r-', linewidth=2, marker='^', markersize=4)
 ax3.set_xlabel('Delta (demi-largeur de bande)')
 ax3.set_ylabel('Trades par chemin')
@@ -168,25 +161,25 @@ ax3.set_title('Activité de Trading vs Delta')
 ax3.grid(True, alpha=0.3)
 ax3.set_yscale('log')  # Échelle log car ça va de 0 à 252
 
-# Plot 4: Coûts de transaction
+
 ax4.plot(deltas, fees_list, 'm-', linewidth=2, marker='d', markersize=4)
 ax4.set_xlabel('Delta (demi-largeur de bande)')
 ax4.set_ylabel('Frais par chemin')
 ax4.set_title('Coûts de Transaction vs Delta')
 ax4.grid(True, alpha=0.3)
-ax4.set_yscale('log')  # Échelle log
+ax4.set_yscale('log')
 
 plt.tight_layout()
 plt.show()
 
-# Analyse économique
+
 print("\n" + "="*70)
 print("ANALYSE ÉCONOMIQUE:")
 print("="*70)
 
-# Points de référence
-rebalance_continu = all_results[0]  # delta = 0
-no_rebalance = all_results[-1]     # delta max
+
+rebalance_continu = all_results[0]  
+no_rebalance = all_results[-1]     
 
 print(f"Rebalancement continu (δ=0):")
 print(f"  E[U] = {rebalance_continu[1]:.6e}")
@@ -206,7 +199,7 @@ print(f"  E[W] = {best[2]:.2f}")
 print(f"  Trades = {best[4]:.1f}/chemin")
 print(f"  Frais = {best[5]:.4f}/chemin")
 
-# Gains relatifs
+
 gain_vs_continuous = (best[0] - rebalance_continu[1]) / abs(rebalance_continu[1]) * 100
 gain_vs_no_rebal = (best[0] - no_rebalance[1]) / abs(no_rebalance[1]) * 100
 
