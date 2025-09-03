@@ -1,7 +1,5 @@
 """
-discrete_bands.py - VERSION FINALE CORRIGÉE
-- Correction du problème d'affichage des utilités CRRA
-- Graines aléatoires différentes pour éviter les corrélations
+discrete_bands.py
 """
 
 import numpy as np
@@ -11,31 +9,29 @@ import matplotlib.pyplot as plt
 T = 1.0           # horizon (années)
 N = 252           # pas de temps
 dt = T / N
-mu = 0.07         # drift de l'actif
+mu = 0.07         
 sigma = 0.2       # volatilité
 r = 0.02          # taux sans risque
 lam = 0.003       # coût proportionnel (aller-retour ~ 2*lam)
 gamma = 5.0       # aversion CRRA
 W0 = 100.0        # richesse initiale
-n_paths = 50000   # Plus de simulations pour réduire le bruit
+n_paths = 50000   #Monte Carlo
 
 pi_star = (mu - r) / (gamma * sigma * sigma)
 pi_star = np.clip(pi_star, 0.0, 1.0)
 
-# grille de bandes à tester (demi-largeur δ)
-delta_grid = np.linspace(0.0, 0.25, 26)  # Plus de points pour plus de lissage
+# grille de bandes (demi-largeur δ)
+delta_grid = np.linspace(0.0, 0.25, 26)  
 # -----------------------------------------------------
 
 def u_crra(w, g):
-    """Utilité CRRA avec protection contre w<=0"""
+    """Utilité CRRA avec protection contre w<=0 du au log"""
     if g == 1.0:
         return np.log(np.maximum(w, 1e-12))
     return (np.maximum(w, 1e-12) ** (1.0 - g)) / (1.0 - g)
 
 def simulate_terminal_utility(delta, seed_base=42):
-    """Simulation Monte Carlo avec graine FIXE pour toutes les deltas"""
-    
-    # CORRECTION: graine fixe pour éliminer le bruit entre deltas
+    """Simulation Monte Carlo a pour toutes les deltas"""
     rng = np.random.default_rng(seed_base)
     
     W = np.full(n_paths, W0, dtype=np.float64)
@@ -103,7 +99,7 @@ def simulate_terminal_utility(delta, seed_base=42):
     
     return u_crra(W, gamma).mean(), W.mean(), W.std(), avg_trades, avg_fees
 
-# Simulation avec graines différentes
+# Simulation
 print(f"Paramètres: μ={mu}, σ={sigma}, r={r}, λ={lam}, γ={gamma}")
 print(f"π* (Merton) = {pi_star:.4f}")
 print(f"Simulations: {n_paths:,} chemins")
@@ -114,7 +110,6 @@ all_results = []
 best = None
 
 for i, d in enumerate(delta_grid):
-    # CORRECTION: graine FIXE pour toutes les simulations
     m_u, m_W, s_W, trades, fees = simulate_terminal_utility(d, seed_base=42)
     score = m_u
     all_results.append((d, score, m_W, s_W, trades, fees))
@@ -122,7 +117,6 @@ for i, d in enumerate(delta_grid):
     if (best is None) or (score > best[0]):
         best = (score, d, m_W, s_W, trades, fees)
     
-    # Affichage avec FORMAT SCIENTIFIQUE
     if i % 5 == 0:
         print(f"δ={d:.3f}: E[U]={m_u:.6e}, E[W]={m_W:.2f}, "
               f"σ[W]={s_W:.2f}, Trades={trades:.1f}, Fees={fees:.4f}")
@@ -131,7 +125,7 @@ print("-" * 70)
 print(f"[RÉSULTAT OPTIMAL]")
 print(f"π* = {pi_star:.4f}")
 print(f"δ* = {best[1]:.4f}")
-print(f"E[U_T] = {best[0]:.8e}")  # FORMAT SCIENTIFIQUE
+print(f"E[U_T] = {best[0]:.8e}") 
 print(f"E[W_T] = {best[2]:.2f}")
 print(f"σ[W_T] = {best[3]:.2f}")
 print(f"Trades/chemin = {best[4]:.1f}")
@@ -146,11 +140,11 @@ fees_list = [r[5] for r in all_results]
 
 fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
 
-# Plot 1: Utilité (devrait être lisse maintenant)
+# Plot 1: Utilité 
 ax1.plot(deltas, utilities, 'b-', linewidth=2, marker='o', markersize=4)
 ax1.set_xlabel('Delta (demi-largeur de bande)')
 ax1.set_ylabel('Utilité Espérée')
-ax1.set_title(f'Utilité Espérée vs Delta\n(50k sims, graines différentes)')
+ax1.set_title(f'Utilité Espérée vs Delta')
 ax1.grid(True, alpha=0.3)
 ax1.axvline(x=best[1], color='r', linestyle='--', linewidth=1,
            label=f'δ* = {best[1]:.3f}')
