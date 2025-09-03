@@ -1,15 +1,5 @@
-"""
-QVI Discrete Policy Iteration — VERSION CORRIGÉE (simple & explicite)
-
-- Terminal: V_N(w) = u(1)
-- Coûts proportionnels sous CRRA: facteur (1 - λ|c - w|)^(1-γ)
-- Rendements: facteur M^(1-γ), M = c*S_rel + (1-c)*B_rel
-- Tirages communs par pas (variance réduite)
-"""
-
 import numpy as np
 
-# ---------- paramètres ----------
 T = 1.0; N = 64; dt = T / N
 mu = 0.07; sigma = 0.2; r = 0.02
 lam = 0.003        # coût proportionnel
@@ -17,9 +7,8 @@ gamma = 5.0        # aversion CRRA
 n_mc = 2000
 rng = np.random.default_rng(123)
 
-# ---------- grilles ----------
-Wgrid = np.linspace(0.05, 0.95, 51)   # états (poids)
-Cgrid = np.linspace(0.05, 0.95, 21)   # cibles (contrôles)
+Wgrid = np.linspace(0.05, 0.95, 51)   # états
+Cgrid = np.linspace(0.05, 0.95, 21)   # cibles
 B_rel = float(np.exp(r * dt))         # rendement obligataire par pas
 
 print("Paramètres:",
@@ -27,14 +16,12 @@ print("Paramètres:",
       f"| |W|={len(Wgrid)} [{Wgrid[0]:.2f},{Wgrid[-1]:.2f}]",
       f"| |C|={len(Cgrid)} [{Cgrid[0]:.2f},{Cgrid[-1]:.2f}]", sep="\n")
 
-# ---------- utilité ----------
 def u_crra(w):
     w = np.maximum(w, 1e-12)
     if gamma == 1.0:
         return np.log(w)
     return w**(1.0 - gamma) / (1.0 - gamma)
 
-# ---------- interpolation linéaire sur Wgrid ----------
 def interp_V(w_points, V_next):
     w = np.clip(w_points, Wgrid[0], Wgrid[-1])
     i = np.searchsorted(Wgrid, w) - 1
@@ -43,17 +30,14 @@ def interp_V(w_points, V_next):
     a = (w - x0) / (x1 - x0)
     return (1 - a) * V_next[i] + a * V_next[i + 1]
 
-# ---------- tirages communs par pas ----------
 S_rel = np.exp((mu - 0.5*sigma*sigma)*dt
                + sigma*np.sqrt(dt)*rng.standard_normal((N, n_mc)))
 
-# ---------- condition terminale ----------
 V = np.zeros((N + 1, len(Wgrid)))
-V[N, :] = u_crra(1.0)   # richesse normalisée = 1 à l’échéance
+V[N, :] = u_crra(1.0)
 
 print("Extrait V_N(w):", [f"{V[N,i]:.6e}" for i in [0, len(Wgrid)//2, -1]])
 
-# ---------- valeur d'un pas donné (w -> c) ----------
 def step_value(w_from, c_to, V_next, S_rel_t):
     """
     Valeur espérée si on vise la cible c_to depuis w_from au début du pas.
@@ -61,29 +45,29 @@ def step_value(w_from, c_to, V_next, S_rel_t):
     """
     c = float(np.clip(c_to, Wgrid[0], Wgrid[-1]))
     tau = lam * abs(c - w_from)
-    if tau >= 1.0:         # protection insolvabilité
+    if tau >= 1.0:
         return -np.inf
 
     M = c * S_rel_t + (1.0 - c) * B_rel           # multiplicateur de richesse
     w_next = (c * S_rel_t) / np.maximum(M, 1e-16) # poids futur
-    Vn = interp_V(w_next, V_next)                 # V_{t+1}(w_next)
+    Vn = interp_V(w_next, V_next)
 
     factor = (1.0 - tau)**(1.0 - gamma) * np.maximum(M, 1e-16)**(1.0 - gamma)
     return float(np.mean(factor * Vn))
 
-# ---------- itération QVI (backward) ----------
+
 print("\nDémarrage QVI...")
 for t in range(N - 1, -1, -1):
     V_next = V[t + 1, :].copy()
-    shocks = S_rel[t]                 # mêmes chocs pour toutes les actions à ce pas
+    shocks = S_rel[t]
     V_t = np.empty_like(V_next)
 
     for i, w in enumerate(Wgrid):
-        # inaction : cible = w
+
         best = step_value(w, w, V_next, shocks)
-        # meilleure action sur Cgrid
+
         for c in Cgrid:
-            if c == w:   # déjà évalué
+            if c == w:
                 continue
             val = step_value(w, c, V_next, shocks)
             if val > best:
@@ -98,7 +82,6 @@ for t in range(N - 1, -1, -1):
         print("→ Convergence atteinte.")
         break
 
-# ---------- bande d'inaction à t=0 ----------
 print("\nBande d’inaction à t=0...")
 V1 = V[1, :]; shocks0 = S_rel[0]
 inaction_mask = []
@@ -120,7 +103,7 @@ if idx.size == 0:
 elif idx.size == len(Wgrid):
     print("Toute la grille est en inaction (coûts trop élevés / faible σ).")
 else:
-    # segments contigus
+
     segs, cur = [], [idx[0]]
     for k in idx[1:]:
         if k == cur[-1] + 1: cur.append(k)
