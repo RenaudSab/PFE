@@ -170,7 +170,7 @@ print(f"DEBUG - π* théorique: {pi_star_merton:.3f}")
 print(f"DEBUG - Écart: {abs(optimal_w_terminal - pi_star_merton):.3f}")
 
 if abs(optimal_w_terminal - pi_star_merton) > 0.05:
-    print("⚠️  ATTENTION: Le poids optimal terminal est loin de π*")
+    print("ATTENTION: Le poids optimal terminal est loin de π*")
     print("   Cela peut expliquer le décalage de la bande QVI")
     
     # Correction manuelle si nécessaire
@@ -181,19 +181,12 @@ if abs(optimal_w_terminal - pi_star_merton) > 0.05:
         penalty = -penalty_strength * (w - pi_star_merton)**2
         V[N, i] += penalty
 else:
-    print("✅ Condition terminale bien centrée sur π*")
+    print("Condition terminale bien centrée sur π*")
     
-# DIAGNOSTIC SUPPLÉMENTAIRE: Vérifier la courbure de la fonction valeur terminale
 print("\nDIAGNOSTIC - Courbure de la fonction valeur terminale:")
 second_derivative = np.gradient(np.gradient(V[N, :]))
 avg_curvature = np.mean(np.abs(second_derivative))
 print(f"Courbure moyenne: {avg_curvature:.6f}")
-
-# Si la courbure est trop faible, la différenciation entre les poids est insuffisante
-if avg_curvature < 1e-6:
-    print("⚠️  Courbure trop faible - augmentation artificielle")
-    # Amplifier la différenciation
-    V[N, :] = V[N, :] * 10  # Amplifier les différences
 
 print(f"Valeurs terminales (échantillon):")
 for i in [0, len(Wgrid)//4, len(Wgrid)//2, 3*len(Wgrid)//4, -1]:
